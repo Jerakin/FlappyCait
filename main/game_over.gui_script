@@ -1,0 +1,34 @@
+local score = require "main.score"
+
+function init(self)
+	msg.post(".", "acquire_input_focus")
+	gui.set_text(gui.get_node("lbl_top_score"), "Top score: " .. score.top_score)
+end
+
+function final(self)
+	-- Add finalization code here
+	-- Remove this function if not needed
+end
+
+function update(self, dt)
+	-- Add update code here
+	-- Remove this function if not needed
+end
+
+function on_message(self, message_id, message, sender)
+	-- Add message-handling code here
+	-- Remove this function if not needed
+end
+
+function on_input(self, action_id, action)
+	if action_id == hash("touch") and action.pressed and gui.pick_node(gui.get_node("btn_replay"), action.x, action.y) then
+		msg.post("level:/level#level", "restart")
+	end
+	-- Add input-handling code here
+	-- Remove this function if not needed
+end
+
+function on_reload(self)
+	-- Add input-handling code here
+	-- Remove this function if not needed
+end

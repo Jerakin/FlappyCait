@@ -1,0 +1,13 @@
+function init(self)
+	math.randomseed(os.time())
+	msg.post(".", "acquire_input_focus")
+	msg.post("/go#level", "async_load")
+	print(msg.url())
+end
+
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("proxy_loaded") then
+		msg.post(sender, "enable")
+	end
+end

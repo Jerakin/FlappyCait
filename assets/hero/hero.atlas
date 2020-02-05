@@ -1,0 +1,22 @@
+images {
+  image: "/assets/hero/mattias_3.png"
+}
+images {
+  image: "/assets/hero/mattias_4.png"
+}
+animations {
+  id: "death"
+  images {
+    image: "/assets/hero/mattias_1.png"
+  }
+  images {
+    image: "/assets/hero/mattias_2.png"
+  }
+  playback: PLAYBACK_LOOP_FORWARD
+  fps: 2
+  flip_horizontal: 0
+  flip_vertical: 0
+}
+margin: 0
+extrude_borders: 0
+inner_padding: 0

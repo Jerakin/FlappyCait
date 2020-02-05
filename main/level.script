@@ -1,0 +1,96 @@
+local score = require "main.score"
+
+local GAP_BETWEEN_ENTETIES = 50
+local DISTANCE_BETWEEN_ENTETIES = 200
+local spawn_location = vmath.vector3(720, 0, 0)
+
+local OBJECTS = {}
+
+local ENTITY_Y = {330, 438,546, 760}
+local ENTITY_X = 720
+local ENTITY_X_END = -50
+local SCROLLING_SPEED = 5
+local TIME_BETWEEN_PILLARS = 2
+
+local SCORE = 0
+local TOP_SCORE = 0
+
+local created_objects = {}
+
+local function animate_ground(self)
+	go.set_position(vmath.vector3(0), "ground")
+	go.animate("ground", "position.x", go.PLAYBACK_LOOP_FORWARD, -720, go.EASING_LINEAR, SCROLLING_SPEED*0.929, 0,
+		function() go.set_position(vmath.vector3(0), "ground")
+	end)
+end
+
+local function spawn_pillar()
+	-- The scale corresponds to where the gap is, 0 is bottom
+	local y =  ENTITY_Y[math.random(#ENTITY_Y)]
+	local start_position = vmath.vector3(ENTITY_X, y, 0)
+	local end_position = vmath.vector3(ENTITY_X_END, y, 0)
+	local obj = factory.create("/level#factory", start_position)
+	created_objects[#created_objects + 1] = obj
+	go.animate(obj, "position", go.PLAYBACK_ONCE_FORWARD, end_position, go.EASING_LINEAR, SCROLLING_SPEED, 0, function() 
+		go.delete(obj, true) 
+	end)
+end
+
+local function player_died(self)
+	timer.cancel(self.spawning_timer)
+	pprint(created_objects)
+	for i, entity in pairs(created_objects) do
+		go.cancel_animations(entity, "position")
+	end
+	go.cancel_animations("ground", "position")
+	msg.post("/monster/head#monster", "game_over")
+	msg.post("/player#controller", "game_over")
+	score.score = 0
+end
+
+local function level_start(self)
+	for i, entity in pairs(created_objects) do
+		go.delete(entity, true) 
+	end
+	created_objects = {}
+	label.set_text("/level#lbl_score", score.score)
+	spawn_pillar(self)
+	animate_ground(self)
+	self.spawning_timer = timer.delay(TIME_BETWEEN_PILLARS, true, spawn_pillar)
+end
+
+function init(self)
+	msg.post(".", "acquire_input_focus")
+	level_start(self)
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("trigger_response") then
+		if message.enter and message.own_group == hash("death") then
+			player_died(self)
+		elseif not message.enter and message.own_group == hash("point") then
+			score.add_to_score()
+			label.set_text("/level#lbl_score", score.score)
+		end
+	elseif message_id == hash("restart") then
+		level_start(self)
+		msg.post("/level#game_over", "unload")
+		msg.post("/player#controller", "restart")
+		msg.post("/monster/head#monster", "restart")
+	elseif message_id == hash("proxy_loaded") then
+		msg.post(sender, "enable")
+	elseif message_id == hash("eaten") then
+		msg.post("/level#game_over", "load")
+	end
+end
+
+function on_input(self, action_id, action)
+	-- Add input-handling code here
+	-- Remove this function if not needed
+end
+
+function on_reload(self)
+	player_died(self)
+	-- Add reload-handling code here
+	-- Remove this function if not needed
+end

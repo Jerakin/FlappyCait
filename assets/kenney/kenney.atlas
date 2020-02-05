@@ -1,0 +1,27 @@
+images {
+  image: "/assets/kenney/hillCaneChoco.png"
+}
+images {
+  image: "/assets/kenney/hillCaneChocoTop.png"
+}
+images {
+  image: "/assets/kenney/hillCaneGreen.png"
+}
+images {
+  image: "/assets/kenney/hillCaneGreenTop.png"
+}
+images {
+  image: "/assets/kenney/hillCanePink.png"
+}
+images {
+  image: "/assets/kenney/hillCanePinkTop.png"
+}
+images {
+  image: "/assets/kenney/hillCaneRed.png"
+}
+images {
+  image: "/assets/kenney/hillCaneRedTop.png"
+}
+margin: 0
+extrude_borders: 1
+inner_padding: 0

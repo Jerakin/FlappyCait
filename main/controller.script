@@ -1,0 +1,150 @@
+local acceleration = 500
+local jump_timing = 1
+local modifier = 0.5
+
+local move_acceleration = 3500
+-- acceleration factor to use when air-borne
+local air_acceleration_factor = 0.8
+-- max speed right/left
+local max_speed = 450
+-- gravity pulling the player down in pixel units
+local gravity = -800
+-- take-off speed when jumping in pixel units
+local jump_takeoff_speed = 400
+-- time within a double tap must occur to be considered a jump (only used for mouse/touch controls)
+local touch_jump_timeout = 0.2
+
+local function start_game(self)
+	go.set_position(self.start_position)
+	sprite.play_flipbook("/player#sprite", "mattias_3")
+	self.current_id = 3
+	-- initial player velocity
+	self.velocity = vmath.vector3(0, 0, 0)
+	-- support variable to keep track of collisions and separation
+	self.correction = vmath.vector3()
+	-- if the player stands on ground or not
+	self.ground_contact = false
+	-- movement input in the range [-1,1]
+	self.move_input = 0
+	-- the currently playing animation
+	self.anim = nil
+	-- timer that controls the jump-window when using mouse/touch
+	self.touch_jump_timer = 0
+	self.block = false
+end
+
+function init(self)
+	msg.post(".", "acquire_input_focus")
+	self.start_position = go.get_position()
+	start_game(self)
+end
+
+function final(self)
+	-- Add finalization code here
+	-- Remove this function if not needed
+end
+local function anim(self)
+	if self.current_id == 3 then
+		self.current_id = 4
+	else
+		self.current_id = 3
+	end
+	
+	local texture = "mattias_" .. self.current_id
+	sprite.play_flipbook("/player#sprite", texture)
+end
+
+local function jump(self)
+	-- (extend this with a counter to do things like double-jumps)
+	-- set take-off speed
+	self.velocity.y = jump_takeoff_speed
+	anim(self)
+end
+
+function update(self, dt)
+	if self.block then
+		return
+	end
+	-- determine the target speed based on input
+	local target_speed = self.move_input * max_speed
+	-- calculate the difference between our current speed and the target speed
+	local speed_diff = target_speed - self.velocity.x
+	-- the complete acceleration to integrate over this frame
+	local acceleration = vmath.vector3(0, gravity, 0)
+	if speed_diff ~= 0 then
+		-- set the acceleration to work in the direction of the difference
+		if speed_diff < 0 then
+			acceleration.x = -move_acceleration
+		else
+			acceleration.x = move_acceleration
+		end
+		-- decrease the acceleration when air-borne to give a slower feel
+		if not self.ground_contact then
+			acceleration.x = air_acceleration_factor * acceleration.x
+		end
+	end
+	-- calculate the velocity change this frame (dv is short for delta-velocity)
+	local dv = acceleration * dt
+	-- check if dv exceeds the intended speed difference, clamp it in that case
+	if math.abs(dv.x) > math.abs(speed_diff) then
+		dv.x = speed_diff
+	end
+	-- save the current velocity for later use
+	-- (self.velocity, which right now is the velocity used the previous frame)
+	local v0 = self.velocity
+	-- calculate the new velocity by adding the velocity change
+	self.velocity = self.velocity + dv
+	-- calculate the translation this frame by integrating the velocity
+	local dp = (v0 + self.velocity) * dt * 0.5
+	-- apply it to the player character
+	go.set_position(go.get_position() + dp)
+
+	-- update the jump timer
+	if self.touch_jump_timer > 0 then
+		self.touch_jump_timer = self.touch_jump_timer - dt
+	end
+
+	-- reset volatile state
+	self.correction = vmath.vector3()
+	self.move_input = 0
+	
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("restart") then
+		start_game(self)
+	elseif message_id == hash("game_over") then
+		self.block = true
+		sprite.play_flipbook("/player#sprite", "death")
+	end
+end
+
+function on_input(self, action_id, action)
+	if action_id == hash("touch") then
+		if self.block then
+			return
+		end
+		if action.released then
+			-- start timing the last release to see if we are about to jump
+			self.touch_jump_timer = touch_jump_timeout
+		elseif action.pressed then
+			jump(self)
+		end
+	end
+end
+
+function on_reload(self)
+	-- initial player velocity
+	self.velocity = vmath.vector3(0, 0, 0)
+	-- support variable to keep track of collisions and separation
+	self.correction = vmath.vector3()
+	-- if the player stands on ground or not
+	self.ground_contact = false
+	-- movement input in the range [-1,1]
+	self.move_input = 0
+	-- the currently playing animation
+	self.anim = nil
+	-- timer that controls the jump-window when using mouse/touch
+	self.touch_jump_timer = 0
+	go.set_position(vmath.vector3(321, 452, 0))
+end

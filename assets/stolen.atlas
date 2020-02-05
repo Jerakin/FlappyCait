@@ -1,0 +1,9 @@
+images {
+  image: "/assets/Ground_PNG_Clip_Art_Image.png"
+}
+images {
+  image: "/assets/facebook.jpg"
+}
+margin: 0
+extrude_borders: 1
+inner_padding: 0

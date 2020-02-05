@@ -1,0 +1,56 @@
+local jaw = "bot"
+local head = "head"
+
+local function cancel_all(self)
+	go.cancel_animations(head, "euler")
+	go.cancel_animations(head, "position")
+	go.cancel_animations(jaw, "euler")	
+end
+
+local function animation_idle(self)
+	cancel_all()
+	go.animate(head, "euler.z", go.PLAYBACK_LOOP_PINGPONG, -15, go.EASING_LINEAR, 1.5)
+	go.animate(head, "position.y", go.PLAYBACK_LOOP_PINGPONG, self.start_head_position.y + 50, go.EASING_OUTSINE, 0.6)
+	go.animate(jaw, "euler.z", go.PLAYBACK_LOOP_PINGPONG, -20, go.EASING_LINEAR, .7)
+end
+
+local function animation_restart(self)
+	cancel_all()
+	go.animate(head, "euler", go.PLAYBACK_ONCE_FORWARD, self.start_head_rotation, go.EASING_LINEAR, 1.5, 0, function() 
+		animation_idle(self)
+	end)
+	go.animate(head, "position", go.PLAYBACK_ONCE_FORWARD, self.start_head_position, go.EASING_OUTSINE, 0.6)
+	go.animate(jaw, "euler", go.PLAYBACK_ONCE_FORWARD, self.start_jaw_rotation, go.EASING_LINEAR, .7)
+end
+
+local function animation_eat_player(self)
+	cancel_all()
+	go.animate(jaw, "euler.z", go.PLAYBACK_ONCE_FORWARD, 0, go.EASING_LINEAR, .1)
+	go.animate(head, "euler.z", go.PLAYBACK_ONCE_FORWARD, 30, go.EASING_LINEAR, .5)
+	go.animate(jaw, "euler.z", go.PLAYBACK_ONCE_FORWARD, -40, go.EASING_LINEAR, 2)
+	go.animate(head, "position", go.PLAYBACK_ONCE_FORWARD, self.player_position, go.EASING_INEXPO, 2, 0, function() 
+		go.animate(jaw, "euler.z", go.PLAYBACK_ONCE_FORWARD, 0, go.EASING_LINEAR, .1, 0, 
+			function() msg.post("/level#level", "eaten")
+		end)
+	end)
+end
+
+
+
+function init(self)
+	self.start_head_position = go.get_position(head)
+	self.start_head_rotation = go.get(head, "euler")
+	self.start_jaw_position = go.get_position(jaw)
+	self.start_jaw_rotation = go.get(jaw, "euler")
+	
+	animation_idle(self)
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("game_over") then
+		self.player_position = go.get_position("/player")
+		animation_eat_player(self)
+	elseif message_id == hash("restart") then
+		animation_restart(self)
+	end
+end
